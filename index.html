@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Kebersihan & CCTV</title>
+    <title>Dashboard Monitoring Site SLA - Realtime & Weekly Bulk Upload</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons CDN -->
@@ -29,20 +29,17 @@
                     <i data-lucide="radio" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight tracking-wide">Dashboard Monitoring Kebersihan dan CCTV</h1>
-                    <p class="text-xs text-slate-400 font-normal">Sistem Laporan Kebersihan & CCTV Problem SLA Harian / Mingguan</p>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide">Dashboard Monitoring Site SLA</h1>
+                    <p class="text-xs text-slate-400 font-normal">Sistem Laporan Availabilitas & Problem SLA Harian / Mingguan</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center justify-end gap-2.5 w-full lg:w-auto">
-                <!-- DROPDOWN DINAMIS BULAN & TAHUN (2026 - 2027) -->
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <i data-lucide="calendar" class="w-4 h-4"></i>
                     </div>
-                    <select id="monthFilter" onchange="handleMonthChange(this.value)" class="bg-[#15203e] text-slate-200 text-xs font-semibold pl-9 pr-8 py-2 rounded-lg border border-slate-700/80 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
-                        <!-- Populated dynamically via JS (Jan 2026 - Des 2027) -->
-                    </select>
+                    <select id="monthFilter" onchange="handleMonthChange(this.value)" class="bg-[#15203e] text-slate-200 text-xs font-semibold pl-9 pr-8 py-2 rounded-lg border border-slate-700/80 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer"></select>
                     <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
                         <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
                     </div>
@@ -50,12 +47,12 @@
 
                 <button onclick="downloadExcelTemplate()" class="flex items-center space-x-1.5 bg-[#15203e] hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700/80 transition shadow-sm">
                     <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
-                    <span>Template Excel</span>
+                    <span>Template Site</span>
                 </button>
 
                 <button onclick="openUploadModal()" class="flex items-center space-x-1.5 bg-[#15203e] hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700/80 transition shadow-sm">
                     <i data-lucide="upload" class="w-4 h-4 text-blue-400"></i>
-                    <span>Upload Bulk</span>
+                    <span>Upload Bulk Site</span>
                 </button>
 
                 <button onclick="openAddSiteModal()" class="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-blue-600/20">
@@ -70,7 +67,7 @@
 
                 <button onclick="resetAllData()" class="flex items-center space-x-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold px-3 py-2 rounded-lg border border-rose-800/40 transition">
                     <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                    <span>Reset Data Bulan Ini</span>
+                    <span>Reset Data</span>
                 </button>
             </div>
         </div>
@@ -78,6 +75,74 @@
 
     <!-- MAIN CONTENT -->
     <main class="max-w-[1700px] w-full mx-auto p-4 md:p-6 space-y-6 flex-grow">
+
+        <!-- FITUR 1: SUMMARY NOW STATUS CARDS (REAL-TIME STATUS SITES) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Total Sites -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Total Site Active</p>
+                    <h3 id="cardTotalSites" class="text-2xl font-black text-slate-800 mt-0.5">0</h3>
+                    <p class="text-[10px] text-slate-400 mt-1">Terdaftar di Sistem</p>
+                </div>
+                <div class="w-11 h-11 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="server" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Kebersihan: Clean vs Dirty -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Kebersihan (Now)</p>
+                    <div class="flex items-baseline space-x-2 mt-0.5">
+                        <h3 id="cardCleanSites" class="text-2xl font-black text-emerald-600">0</h3>
+                        <span class="text-xs font-bold text-slate-400">Clean</span>
+                        <span class="text-slate-300">/</span>
+                        <span id="cardDirtySites" class="text-sm font-bold text-amber-600">0 Dirty</span>
+                    </div>
+                    <p id="cardCleanPct" class="text-[10px] text-emerald-600 font-semibold mt-1">0% Clean SLA Rate</p>
+                </div>
+                <div class="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- CCTV Online -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-slate-400 tracking-wider">CCTV Online (Now)</p>
+                    <h3 id="cardCctvOnline" class="text-2xl font-black text-blue-600 mt-0.5">0</h3>
+                    <p id="cardCctvOnlinePct" class="text-[10px] text-blue-600 font-semibold mt-1">0% Availability</p>
+                </div>
+                <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="video" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Partial Issues (BLT/PTZ Off) -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-slate-400 tracking-wider">CCTV Partial Off</p>
+                    <h3 id="cardCctvPartial" class="text-2xl font-black text-amber-600 mt-0.5">0</h3>
+                    <p class="text-[10px] text-amber-600 font-semibold mt-1">BLT / PTZ Offline</p>
+                </div>
+                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- Critical Issues (Down/Total Off) -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Site Down / Critical</p>
+                    <h3 id="cardCctvCritical" class="text-2xl font-black text-rose-600 mt-0.5">0</h3>
+                    <p class="text-[10px] text-rose-600 font-semibold mt-1">NVR Off / Site Down</p>
+                </div>
+                <div class="w-11 h-11 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center">
+                    <i data-lucide="wifi-off" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </div>
 
         <!-- WEEKLY RANGE & INPUT TOOLBAR -->
         <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
@@ -91,13 +156,19 @@
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3 text-xs">
-                <button onclick="openWeeklyModal()" class="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition">
-                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                    <span>Input / Update Data Minggu</span>
+            <div class="flex flex-wrap items-center gap-2.5 text-xs">
+                <!-- FITUR 2: BULK UPDATE WEEKLY MATRIX REPORT BUTTON -->
+                <button onclick="openWeeklyBulkModal()" class="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm transition">
+                    <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                    <span>Upload Bulk Matrix</span>
                 </button>
 
-                <div class="flex items-center space-x-2">
+                <button onclick="openWeeklyModal()" class="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm transition">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    <span>Input / Update Minggu</span>
+                </button>
+
+                <div class="flex items-center space-x-2 ml-2">
                     <span class="font-semibold text-slate-600">Rentang Minggu:</span>
                     <select id="startWeekSelect" onchange="handleWeekRangeChange()" class="bg-slate-50 border border-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"></select>
                     <span class="text-slate-400 font-bold">s/d</span>
@@ -231,7 +302,60 @@
 
     </main>
 
-    <!-- MODALS -->
+    <!-- FITUR 2 MODAL: BULK UPLOAD SUMMARY WEEKLY MATRIX REPORT -->
+    <div id="weeklyBulkModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600"></i> Upload Bulk Weekly Matrix Report
+                </h3>
+                <button onclick="closeWeeklyBulkModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4 space-y-4">
+                <p class="text-xs text-slate-500">
+                    Unggah file Excel/CSV rekap mingguan untuk memperbarui summary Kebersihan & CCTV secara kolektif.
+                </p>
+
+                <div class="flex items-center justify-between bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                    <span class="text-xs font-semibold text-emerald-800">Belum punya format Excel-nya?</span>
+                    <button onclick="downloadWeeklyMatrixTemplate()" class="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> Download Template Matrix
+                    </button>
+                </div>
+
+                <div id="weeklyDropZone" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-xl p-6 text-center cursor-pointer transition">
+                    <input type="file" id="weeklyFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleWeeklyFileSelect(event)">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
+                            <i data-lucide="file-up" class="w-6 h-6"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-700">Klik untuk memilih file Matrix Excel/CSV</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Kolom: WEEK, CLEAN, DIRTY, UNMONITORED, CCTV_ONLINE, BLT_OFF, PTZ_OFF, ALL_OFF, CCTV2_OFF, SITE_DOWN</p>
+                    </div>
+                </div>
+
+                <div id="selectedWeeklyFileInfo" class="hidden bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5 overflow-hidden">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                        <span id="weeklyFileName" class="text-xs font-semibold text-slate-700 truncate">rekap_weekly.xlsx</span>
+                    </div>
+                    <button onclick="removeSelectedWeeklyFile()" class="text-slate-400 hover:text-rose-500">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end space-x-2 pt-4 border-t border-slate-100">
+                <button onclick="closeWeeklyBulkModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Batal</button>
+                <button onclick="processWeeklyBulkUpload()" id="btnProcessWeeklyUpload" disabled class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg shadow-md transition">Import Matrix Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTHER MODALS (SINGLE WEEKLY, SITE UPLOAD, ADD SITE) -->
     <div id="weeklyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center pb-4 border-b border-slate-100">
@@ -244,7 +368,6 @@
             </div>
             
             <form id="weeklyForm" onsubmit="handleWeeklyFormSubmit(event)" class="mt-4 space-y-5 text-xs">
-                
                 <div class="bg-blue-50/60 p-3 rounded-xl border border-blue-100 flex items-center justify-between">
                     <div>
                         <label class="block font-bold text-slate-700">Pilih Minggu Target:</label>
@@ -323,7 +446,6 @@
         </div>
     </div>
 
-    <!-- UPLOAD & ADD SITE MODAL -->
     <div id="uploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
             <div class="flex justify-between items-center pb-4 border-b border-slate-100">
@@ -336,9 +458,7 @@
             </div>
             
             <div class="mt-4 space-y-4">
-                <p class="text-xs text-slate-500">
-                    Unggah berkas Excel (<code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">.xlsx</code>) atau <code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">.csv</code>.
-                </p>
+                <p class="text-xs text-slate-500">Unggah berkas Excel (<code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">.xlsx</code>) atau <code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">.csv</code>.</p>
 
                 <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/50 rounded-xl p-6 text-center cursor-pointer transition">
                     <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)">
@@ -364,7 +484,7 @@
 
             <div class="mt-6 flex items-center justify-end space-x-2 pt-4 border-t border-slate-100">
                 <button onclick="closeUploadModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Batal</button>
-                <button onclick="processUpload()" id="btnProcessUpload" disabled class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 rounded-lg shadow-md transition">Import & Update Data</button>
+                <button onclick="processUpload()" id="btnProcessUpload" disabled class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-md transition">Import & Update Data</button>
             </div>
         </div>
     </div>
@@ -446,21 +566,16 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC MULTI-YEAR (2026-2027) -->
+    <!-- JAVASCRIPT LOGIC -->
     <script>
-        const monthNames = [
-            "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
-            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-        ];
+        const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
-        // MENGHASILKAN OPTION BULAN UNTUK TAHUN 2026 & 2027
         function generateMonthOptions() {
             const select = document.getElementById('monthFilter');
             let optionsHTML = '';
 
-            const years = [2026, 2027];
-            years.forEach(year => {
-                monthNames.forEach((month, idx) => {
+            [2026, 2027].forEach(year => {
+                monthNames.forEach(month => {
                     const key = `${month.toLowerCase()}-${year}`;
                     const label = `${month} ${year}`;
                     const selected = (key === 'november-2026') ? 'selected' : '';
@@ -471,13 +586,9 @@
             select.innerHTML = optionsHTML;
         }
 
-        // FUNGSI ESTIMASI WEEKS DENGAN FORMULA ISO WEEK NUMBERS
         function getDefaultWeeksForMonth(monthKey) {
             const parts = monthKey.split('-');
             const mIdx = monthNames.findIndex(m => m.toLowerCase() === parts[0]);
-            const yr = parseInt(parts[1]);
-
-            // Pemetaan rentang minggu standar per bulan (W1 - W52)
             const approxStartWeek = Math.floor(mIdx * 4.33) + 1;
             return [approxStartWeek, approxStartWeek + 1, approxStartWeek + 2, approxStartWeek + 3];
         }
@@ -491,15 +602,13 @@
         ];
 
         let currentMonthKey = 'november-2026';
+        let selectedWeeklyFileRaw = null;
 
-        function getMonthStorageKey(monthKey, type) {
-            return `sla_${monthKey}_${type}`;
-        }
+        function getMonthStorageKey(monthKey, type) { return `sla_${monthKey}_${type}`; }
 
         function loadMonthState(monthKey) {
             const defaultWeeks = getDefaultWeeksForMonth(monthKey);
             
-            // Default preset khusus November 2026 sesuai referensi
             let defaultKebersihan = [
                 { category: 'Sudah Dibersihkan', color: 'bg-emerald-500', history: {} },
                 { category: 'Belum Dibersihkan', color: 'bg-amber-500', history: {} },
@@ -516,7 +625,6 @@
             ];
 
             if (monthKey === 'november-2026') {
-                const wNov = [39, 40, 41, 42, 43, 44];
                 defaultKebersihan[0].history = { 39: 73, 40: 74, 41: 76, 42: 77, 43: 80, 44: 83 };
                 defaultKebersihan[1].history = { 39: 111, 40: 107, 41: 105, 42: 104, 43: 101, 44: 99 };
                 defaultKebersihan[2].history = { 39: 5, 40: 5, 41: 5, 42: 5, 43: 5, 44: 4 };
@@ -544,15 +652,10 @@
             };
         }
 
-        function saveData(key, val) {
-            localStorage.setItem(key, JSON.stringify(val));
-        }
-
+        function saveData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
         function loadData(key, defaultVal) {
             const saved = localStorage.getItem(key);
-            if (saved) {
-                try { return JSON.parse(saved); } catch(e) { return defaultVal; }
-            }
+            if (saved) { try { return JSON.parse(saved); } catch(e) { return defaultVal; } }
             return defaultVal;
         }
 
@@ -564,6 +667,7 @@
             populateWeekDropdowns();
             renderDashboard();
             setupDragAndDrop();
+            setupWeeklyDragAndDrop();
         });
 
         function handleMonthChange(val) {
@@ -586,9 +690,43 @@
         }
 
         function renderDashboard() {
+            renderNowSummaryCards();
             renderWeeklySummaries();
             const filteredData = filterData(monthState.sites);
             renderTable(filteredData);
+        }
+
+        // LOGIKA FITUR 1: CALCULATE REALTIME NOW SUMMARY CARDS
+        function renderNowSummaryCards() {
+            const total = monthState.sites.length;
+            let clean = 0, dirty = 0, unmonitored = 0;
+            let cctvOnline = 0, partial = 0, critical = 0;
+
+            monthState.sites.forEach(s => {
+                const k = (s.kebersihan || '').toLowerCase();
+                if (k.includes('sudah') || k.includes('bersih')) clean++;
+                else if (k.includes('belum') || k.includes('kotor')) dirty++;
+                else unmonitored++;
+
+                const c = (s.cctv || '').toLowerCase();
+                if (c.includes('down') || c.includes('nvr') || (c.includes('blt') && c.includes('ptz') && c.includes('off'))) critical++;
+                else if (c.includes('blt') || c.includes('ptz') || c.includes('2 cctv')) partial++;
+                else cctvOnline++;
+            });
+
+            const cleanPct = total > 0 ? Math.round((clean / total) * 100) : 0;
+            const cctvPct = total > 0 ? Math.round((cctvOnline / total) * 100) : 0;
+
+            document.getElementById('cardTotalSites').innerText = total;
+            document.getElementById('cardCleanSites').innerText = clean;
+            document.getElementById('cardDirtySites').innerText = `${dirty} Dirty`;
+            document.getElementById('cardCleanPct').innerText = `${cleanPct}% Clean SLA Rate`;
+
+            document.getElementById('cardCctvOnline').innerText = cctvOnline;
+            document.getElementById('cardCctvOnlinePct').innerText = `${cctvPct}% Availability`;
+
+            document.getElementById('cardCctvPartial').innerText = partial;
+            document.getElementById('cardCctvCritical').innerText = critical;
         }
 
         function renderWeeklySummaries() {
@@ -664,7 +802,121 @@
             footerTr.innerHTML = footerHTML;
         }
 
-        // MODAL UPDATE WEEKLY
+        // FITUR 2: BULK UPLOAD SUMMARY WEEKLY MATRIX LOGIC
+        function openWeeklyBulkModal() { document.getElementById('weeklyBulkModal').classList.remove('hidden'); }
+        function closeWeeklyBulkModal() { document.getElementById('weeklyBulkModal').classList.add('hidden'); removeSelectedWeeklyFile(); }
+
+        function setupWeeklyDragAndDrop() {
+            const dropZone = document.getElementById('weeklyDropZone');
+            const fileInput = document.getElementById('weeklyFileInput');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-emerald-500', 'bg-emerald-50'); });
+            dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-emerald-500', 'bg-emerald-50'); });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-emerald-500', 'bg-emerald-50');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleWeeklyFileSelect({ target: fileInput });
+                }
+            });
+        }
+
+        function handleWeeklyFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            selectedWeeklyFileRaw = file;
+            document.getElementById('weeklyFileName').innerText = file.name;
+            document.getElementById('selectedWeeklyFileInfo').classList.remove('hidden');
+            document.getElementById('btnProcessWeeklyUpload').disabled = false;
+        }
+
+        function removeSelectedWeeklyFile() {
+            selectedWeeklyFileRaw = null;
+            document.getElementById('weeklyFileInput').value = '';
+            document.getElementById('selectedWeeklyFileInfo').classList.add('hidden');
+            document.getElementById('btnProcessWeeklyUpload').disabled = true;
+        }
+
+        function downloadWeeklyMatrixTemplate() {
+            const templateHeader = [[
+                'WEEK', 'CLEAN', 'DIRTY', 'UNMONITORED', 'CCTV_ONLINE', 'BLT_OFF', 'PTZ_OFF', 'ALL_OFF', 'CCTV2_OFF', 'SITE_DOWN'
+            ]];
+            const sampleData = [
+                [39, 73, 111, 5, 73, 9, 7, 37, 9, 51],
+                [40, 74, 107, 5, 74, 7, 7, 37, 10, 51]
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet([...templateHeader, ...sampleData]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template_Weekly_Matrix");
+            XLSX.writeFile(wb, `Template_Bulk_Weekly_Matrix.xlsx`);
+        }
+
+        function processWeeklyBulkUpload() {
+            if (!selectedWeeklyFileRaw) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: 0 });
+
+                    if (jsonRows.length === 0) { alert('File kosong.'); return; }
+
+                    let count = 0;
+                    jsonRows.forEach(row => {
+                        const getKey = (keys) => {
+                            for (let k of Object.keys(row)) {
+                                if (keys.includes(k.trim().toUpperCase())) return parseInt(row[k]) || 0;
+                            }
+                            return 0;
+                        };
+
+                        const w = getKey(['WEEK', 'MINGGU', 'W']);
+                        if (!w) return;
+
+                        if (!monthState.weeks.includes(w)) monthState.weeks.push(w);
+
+                        monthState.kebersihanMatrix[0].history[w] = getKey(['CLEAN', 'SUDAH DIBERSIHKAN']);
+                        monthState.kebersihanMatrix[1].history[w] = getKey(['DIRTY', 'BELUM DIBERSIHKAN']);
+                        monthState.kebersihanMatrix[2].history[w] = getKey(['UNMONITORED', 'TIDAK TERMONITOR']);
+
+                        monthState.cctvMatrix[0].history[w] = getKey(['CCTV_ONLINE', 'CCTV ONLINE', 'ONLINE']);
+                        monthState.cctvMatrix[1].history[w] = getKey(['BLT_OFF', 'BLT OFF']);
+                        monthState.cctvMatrix[2].history[w] = getKey(['PTZ_OFF', 'PTZ OFF']);
+                        monthState.cctvMatrix[3].history[w] = getKey(['ALL_OFF', 'NVR_OFF', 'NVR, BLT, PTZ OFFLINE']);
+                        monthState.cctvMatrix[4].history[w] = getKey(['CCTV2_OFF', '2 CCTV OFFLINE']);
+                        monthState.cctvMatrix[5].history[w] = getKey(['SITE_DOWN', 'SITE DOWN']);
+
+                        count++;
+                    });
+
+                    monthState.weeks.sort((a,b) => a - b);
+                    monthState.endWeek = Math.max(...monthState.weeks);
+
+                    saveData(getMonthStorageKey(currentMonthKey, 'weeks'), monthState.weeks);
+                    saveData(getMonthStorageKey(currentMonthKey, 'kebersihan'), monthState.kebersihanMatrix);
+                    saveData(getMonthStorageKey(currentMonthKey, 'cctv'), monthState.cctvMatrix);
+
+                    populateWeekDropdowns();
+                    renderDashboard();
+                    closeWeeklyBulkModal();
+                    alert(`Upload Berhasil! ${count} data mingguan berhasil dimasukkan ke Matrix.`);
+
+                } catch (err) {
+                    console.error(err);
+                    alert('Gagal memproses file. Pastikan nama header kolom sesuai.');
+                }
+            };
+            reader.readAsArrayBuffer(selectedWeeklyFileRaw);
+        }
+
+        // OTHER HANDLERS
         function openWeeklyModal() {
             const monthText = document.getElementById('monthFilter').options[document.getElementById('monthFilter').selectedIndex].text;
             document.getElementById('modalMonthTitle').innerText = monthText;
@@ -679,13 +931,10 @@
             document.getElementById('weeklyModal').classList.remove('hidden');
         }
 
-        function closeWeeklyModal() {
-            document.getElementById('weeklyModal').classList.add('hidden');
-        }
+        function closeWeeklyModal() { document.getElementById('weeklyModal').classList.add('hidden'); }
 
         function loadSelectedWeekToModal(w) {
             const weekNum = parseInt(w);
-
             document.getElementById('w_clean').value = monthState.kebersihanMatrix[0].history[weekNum] || 0;
             document.getElementById('w_dirty').value = monthState.kebersihanMatrix[1].history[weekNum] || 0;
             document.getElementById('w_unmonitored').value = monthState.kebersihanMatrix[2].history[weekNum] || 0;
@@ -930,11 +1179,6 @@
             ];
 
             const ws = XLSX.utils.aoa_to_sheet([...templateHeader, ...sampleData]);
-            ws['!cols'] = [
-                { wch: 6 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
-                { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 22 }
-            ];
-
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Template_Monitoring");
             XLSX.writeFile(wb, `Template_Monitoring_Site_SLA.xlsx`);
@@ -942,7 +1186,6 @@
 
         function exportToExcel() {
             const filtered = filterData(monthState.sites);
-            
             const exportData = filtered.map((site, idx) => ({
                 'NO': idx + 1,
                 'SITE ID': site.siteId,
@@ -957,14 +1200,8 @@
             }));
 
             const ws = XLSX.utils.json_to_sheet(exportData);
-            ws['!cols'] = [
-                { wch: 6 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 16 },
-                { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 22 }
-            ];
-
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Data_Site_SLA");
-
             const currentMonthName = document.getElementById('monthFilter').options[document.getElementById('monthFilter').selectedIndex].text;
             XLSX.writeFile(wb, `Export_Site_SLA_${currentMonthName.replace(/\s+/g, '_')}.xlsx`);
         }
@@ -977,16 +1214,8 @@
             const fileInput = document.getElementById('fileInput');
 
             dropZone.addEventListener('click', () => fileInput.click());
-
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('border-blue-500', 'bg-blue-50');
-            });
-
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
-            });
-
+            dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
+            dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('border-blue-500', 'bg-blue-50');
@@ -1022,18 +1251,12 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
-                    if (jsonRows.length === 0) {
-                        alert('File kosong atau format tidak terbaca.');
-                        return;
-                    }
+                    if (jsonRows.length === 0) { alert('File kosong.'); return; }
 
-                    let updatedCount = 0;
-                    let addedCount = 0;
+                    let updatedCount = 0, addedCount = 0;
 
                     jsonRows.forEach((row, idx) => {
                         const getKey = (possibleKeys) => {
@@ -1072,11 +1295,11 @@
                     saveData(getMonthStorageKey(currentMonthKey, 'sites'), monthState.sites);
                     renderDashboard();
                     closeUploadModal();
-                    alert(`Proses Upload Berhasil!\n\n- ${updatedCount} site diperbarui\n- ${addedCount} site baru ditambahkan`);
+                    alert(`Upload Site Berhasil!\n\n- ${updatedCount} diperbarui\n- ${addedCount} ditambahkan`);
 
                 } catch (error) {
                     console.error(error);
-                    alert('Gagal memproses file. Pastikan format file Excel/CSV benar.');
+                    alert('Gagal memproses file site.');
                 }
             };
 
@@ -1098,7 +1321,6 @@
 
         function handleAddSiteSubmit(e) {
             e.preventDefault();
-            
             const editId = document.getElementById('formEditId').value;
             const inputSiteId = document.getElementById('formSiteId').value.trim().toUpperCase();
 
@@ -1116,16 +1338,11 @@
 
             if (editId) {
                 const idx = monthState.sites.findIndex(s => s.id === parseInt(editId));
-                if (idx !== -1) {
-                    monthState.sites[idx] = { ...monthState.sites[idx], ...siteData };
-                }
+                if (idx !== -1) monthState.sites[idx] = { ...monthState.sites[idx], ...siteData };
             } else {
                 const existingIndex = monthState.sites.findIndex(s => s.siteId.toUpperCase() === inputSiteId);
-                if (existingIndex !== -1) {
-                    monthState.sites[existingIndex] = { ...monthState.sites[existingIndex], ...siteData };
-                } else {
-                    monthState.sites.unshift({ id: Date.now(), ...siteData });
-                }
+                if (existingIndex !== -1) monthState.sites[existingIndex] = { ...monthState.sites[existingIndex], ...siteData };
+                else monthState.sites.unshift({ id: Date.now(), ...siteData });
             }
 
             saveData(getMonthStorageKey(currentMonthKey, 'sites'), monthState.sites);
