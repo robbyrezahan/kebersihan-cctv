@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring Site SLA - Dynamic Multi-Year (2026-2027)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- SheetJS (XLSX) Library -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .table-container::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f5f9; }
+        .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- TOP NAV / HEADER -->
+    <header class="bg-[#0b1329] text-white px-6 py-3.5 shadow-md border-b border-slate-800">
+        <div class="max-w-[1700px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3.5 w-full lg:w-auto">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
+                    <i data-lucide="radio" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-wide">Dashboard Monitoring Site SLA</h1>
+                    <p class="text-xs text-slate-400 font-normal">Sistem Laporan Availabilitas & Problem SLA Harian / Mingguan</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-2.5 w-full lg:w-auto">
+                <!-- DROPDOWN DINAMIS BULAN & TAHUN (2026 - 2027) -->
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                    </div>
+                    <select id="monthFilter" onchange="handleMonthChange(this.value)" class="bg-[#15203e] text-slate-200 text-xs font-semibold pl-9 pr-8 py-2 rounded-lg border border-slate-700/80 focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+                        <!-- Populated dynamically via JS (Jan 2026 - Des 2027) -->
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+
+                <button onclick="downloadExcelTemplate()" class="flex items-center space-x-1.5 bg-[#15203e] hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700/80 transition shadow-sm">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Template Excel</span>
+                </button>
+
+                <button onclick="openUploadModal()" class="flex items-center space-x-1.5 bg-[#15203e] hover:bg-slate-800 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700/80 transition shadow-sm">
+                    <i data-lucide="upload" class="w-4 h-4 text-blue-400"></i>
+                    <span>Upload Bulk</span>
+                </button>
+
+                <button onclick="openAddSiteModal()" class="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-blue-600/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Tambah Site</span>
+                </button>
+
+                <button onclick="exportToExcel()" class="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-md shadow-emerald-600/20">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Export Data</span>
+                </button>
+
+                <button onclick="resetAllData()" class="flex items-center space-x-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold px-3 py-2 rounded-lg border border-rose-800/40 transition">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Reset Data Bulan Ini</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-[1700px] w-full mx-auto p-4 md:p-6 space-y-6 flex-grow">
+
+        <!-- WEEKLY RANGE & INPUT TOOLBAR -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-slate-800">Summary Weekly Matrix Report</h2>
+                    <p class="text-[11px] text-slate-400">Periode Aktif: <span id="activeMonthLabel" class="font-bold text-blue-600">November 2026</span></p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 text-xs">
+                <button onclick="openWeeklyModal()" class="flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition">
+                    <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                    <span>Input / Update Data Minggu</span>
+                </button>
+
+                <div class="flex items-center space-x-2">
+                    <span class="font-semibold text-slate-600">Rentang Minggu:</span>
+                    <select id="startWeekSelect" onchange="handleWeekRangeChange()" class="bg-slate-50 border border-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"></select>
+                    <span class="text-slate-400 font-bold">s/d</span>
+                    <select id="endWeekSelect" onchange="handleWeekRangeChange()" class="bg-slate-50 border border-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- WEEKLY SUMMARY TABLES GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- 1. SUMMARY MATRIX KEBERSIHAN -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">1. Summary Kebersihan Site</h3>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Weekly Matrix</span>
+                </div>
+                <div class="table-container overflow-x-auto flex-grow">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr id="kebersihanHeaderTr" class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider"></tr>
+                        </thead>
+                        <tbody id="kebersihanBody" class="divide-y divide-slate-100 font-medium"></tbody>
+                        <tfoot>
+                            <tr id="kebersihanFooterTr" class="bg-blue-50/50 font-extrabold text-blue-900 border-t border-slate-200 text-xs"></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 2. SUMMARY MATRIX CCTV -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div class="flex items-center space-x-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700">2. Summary Status CCTV</h3>
+                    </div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Weekly Matrix</span>
+                </div>
+                <div class="table-container overflow-x-auto flex-grow">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr id="cctvHeaderTr" class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider"></tr>
+                        </thead>
+                        <tbody id="cctvBody" class="divide-y divide-slate-100 font-medium"></tbody>
+                        <tfoot>
+                            <tr id="cctvFooterTr" class="bg-blue-50/50 font-extrabold text-blue-900 border-t border-slate-200 text-xs"></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH AND FILTERS TOOLBAR -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="relative w-full md:w-96">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari Site ID, Site Name, Opsel, Kecamatan..." 
+                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition">
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <div class="relative w-full sm:w-auto">
+                    <select id="filterKebersihan" onchange="applyFilters()" class="w-full sm:w-auto bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 pr-8 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none">
+                        <option value="ALL">Semua Status Kebersihan</option>
+                        <option value="Sudah di bersihkan">Sudah di bersihkan</option>
+                        <option value="Belum dibersihkan">Belum dibersihkan</option>
+                        <option value="Tidak termonitor">Tidak termonitor</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+
+                <div class="relative w-full sm:w-auto">
+                    <select id="filterCctv" onchange="applyFilters()" class="w-full sm:w-auto bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-2 pr-8 rounded-lg border border-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none">
+                        <option value="ALL">Semua Status CCTV</option>
+                        <option value="Online">Online</option>
+                        <option value="BLT Off">BLT Off</option>
+                        <option value="PTZ Off">PTZ Off</option>
+                        <option value="2 CCTV Offline">2 CCTV Offline</option>
+                        <option value="NVR,PTZ,BLT Offline">NVR,PTZ,BLT Offline</option>
+                        <option value="Site Down">Site Down</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN DATA TABLE -->
+        <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="table-container overflow-x-auto max-h-[600px]">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 z-10">
+                        <tr class="bg-[#0b1329] text-white text-[11px] uppercase font-bold tracking-wider">
+                            <th class="py-3.5 px-4 text-center border-b border-slate-800 w-12">NO</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">SITE ID</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">SITE NAME</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">OPSEL</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">KONSORSIUM</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">PROVINSI</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">KAB/KOTA</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800">KECAMATAN</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800 text-center bg-[#15203e]">KEBERSIHAN</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800 text-center bg-[#15203e]">STATUS CCTV</th>
+                            <th class="py-3.5 px-4 border-b border-slate-800 text-center">AKSI</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-slate-100 text-xs"></tbody>
+                </table>
+            </div>
+
+            <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+                <div>
+                    Menampilkan <span id="showingCount" class="font-bold text-slate-700">0</span> dari <span id="totalCount" class="font-bold text-slate-700">0</span> Site
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button class="px-3 py-1.5 border border-slate-200 bg-white rounded-md text-slate-600 hover:bg-slate-50 font-medium">Previous</button>
+                    <button class="px-3 py-1.5 bg-blue-600 text-white rounded-md font-semibold shadow-sm">1</button>
+                    <button class="px-3 py-1.5 border border-slate-200 bg-white rounded-md text-slate-600 hover:bg-slate-50 font-medium">Next</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALS -->
+    <div id="weeklyModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="edit-3" class="w-5 h-5 text-blue-600"></i> Form Update Weekly Summary (<span id="modalMonthTitle" class="text-blue-600">November 2026</span>)
+                </h3>
+                <button onclick="closeWeeklyModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="weeklyForm" onsubmit="handleWeeklyFormSubmit(event)" class="mt-4 space-y-5 text-xs">
+                
+                <div class="bg-blue-50/60 p-3 rounded-xl border border-blue-100 flex items-center justify-between">
+                    <div>
+                        <label class="block font-bold text-slate-700">Pilih Minggu Target:</label>
+                        <p class="text-[11px] text-slate-400">Pilih minggu yang ada atau buat minggu baru</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <select id="modalWeekSelect" onchange="loadSelectedWeekToModal(this.value)" class="bg-white border border-slate-300 font-extrabold text-blue-700 px-3 py-1.5 rounded-lg text-sm shadow-sm outline-none"></select>
+                        <button type="button" onclick="createNewWeekOption()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm text-xs transition">
+                            + Tambah Minggu
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-extrabold text-slate-800 border-b border-slate-200 pb-1 mb-3 text-xs flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 1. Angka Kebersihan Site
+                    </h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Sudah Dibersihkan</label>
+                            <input type="number" required id="w_clean" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-emerald-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Belum Dibersihkan</label>
+                            <input type="number" required id="w_dirty" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-amber-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Tidak Termonitor</label>
+                            <input type="number" required id="w_unmonitored" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-slate-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-extrabold text-slate-800 border-b border-slate-200 pb-1 mb-3 text-xs flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> 2. Angka Status CCTV
+                    </h4>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">CCTV Online</label>
+                            <input type="number" required id="w_cctvOnline" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-emerald-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">BLT OFF</label>
+                            <input type="number" required id="w_bltOff" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-amber-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">PTZ OFF</label>
+                            <input type="number" required id="w_ptzOff" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-amber-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">NVR, BLT, PTZ Offline</label>
+                            <input type="number" required id="w_allOff" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-rose-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">2 CCTV Offline</label>
+                            <input type="number" required id="w_cctv2Off" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-rose-600 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Site Down</label>
+                            <input type="number" required id="w_siteDown" class="w-full p-2 border border-slate-200 rounded-lg font-bold text-rose-700 bg-slate-50 focus:bg-white outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                    <button type="button" onclick="autoFillFromTable()" class="text-blue-600 hover:text-blue-800 font-semibold text-xs flex items-center gap-1">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Auto-Fill Hitung dari Tabel Bawah
+                    </button>
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="closeWeeklyModal()" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Batal</button>
+                        <button type="submit" class="px-4 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md">Simpan Matrix Minggu</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- UPLOAD & ADD SITE MODAL -->
+    <div id="uploadModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="upload-cloud" class="w-5 h-5 text-blue-600"></i> Upload Bulk Data Site
+                </h3>
+                <button onclick="closeUploadModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="mt-4 space-y-4">
+                <p class="text-xs text-slate-500">
+                    Unggah berkas Excel (<code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">.xlsx</code>) atau <code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded">.csv</code>.
+                </p>
+
+                <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/50 rounded-xl p-6 text-center cursor-pointer transition">
+                    <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileSelect(event)">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2">
+                            <i data-lucide="file-up" class="w-6 h-6"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-700">Klik untuk memilih file atau tarik ke sini</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Format didukung: XLSX, XLS, CSV</p>
+                    </div>
+                </div>
+
+                <div id="selectedFileInfo" class="hidden bg-slate-50 border border-slate-200 p-3 rounded-lg flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5 overflow-hidden">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+                        <span id="fileName" class="text-xs font-semibold text-slate-700 truncate">data_site.xlsx</span>
+                    </div>
+                    <button onclick="removeSelectedFile()" class="text-slate-400 hover:text-rose-500">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end space-x-2 pt-4 border-t border-slate-100">
+                <button onclick="closeUploadModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Batal</button>
+                <button onclick="processUpload()" id="btnProcessUpload" disabled class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 rounded-lg shadow-md transition">Import & Update Data</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="addSiteModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100">
+                <h3 id="modalFormTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i> Tambah Data Site Baru
+                </h3>
+                <button onclick="closeAddSiteModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <form id="addSiteForm" onsubmit="handleAddSiteSubmit(event)" class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                <input type="hidden" id="formEditId" value="">
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Site ID</label>
+                    <input type="text" required id="formSiteId" placeholder="PAP0029" class="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Site Name</label>
+                    <input type="text" required id="formSiteName" placeholder="TOTOBERI" class="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Opsel</label>
+                    <select id="formOpsel" class="w-full p-2 border border-slate-200 rounded-lg bg-white outline-none">
+                        <option value="TELKOMSEL">TELKOMSEL</option>
+                        <option value="INDOSAT">INDOSAT</option>
+                        <option value="XL AXIATA">XL AXIATA</option>
+                        <option value="SMARTFREN">SMARTFREN</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Konsorsium</label>
+                    <input type="text" id="formKonsorsium" value="LA-HW-SEI" class="w-full p-2 border border-slate-200 rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Provinsi</label>
+                    <input type="text" id="formProvinsi" value="PAPUA TENGAH" class="w-full p-2 border border-slate-200 rounded-lg outline-none">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Kab/Kota</label>
+                    <input type="text" id="formKab" value="NABIRE" class="w-full p-2 border border-slate-200 rounded-lg outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block font-semibold text-slate-600 mb-1">Kecamatan</label>
+                    <input type="text" id="formKecamatan" value="WAPOGA" class="w-full p-2 border border-slate-200 rounded-lg outline-none">
+                </div>
+                
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Kebersihan</label>
+                    <select id="formKebersihan" class="w-full p-2 border border-slate-200 rounded-lg bg-white outline-none font-medium">
+                        <option value="Sudah di bersihkan">Sudah di bersihkan</option>
+                        <option value="Belum dibersihkan">Belum dibersihkan</option>
+                        <option value="Tidak termonitor">Tidak termonitor</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1">Status CCTV</label>
+                    <select id="formCctv" class="w-full p-2 border border-slate-200 rounded-lg bg-white outline-none font-medium">
+                        <option value="Online">Online</option>
+                        <option value="BLT Off">BLT Off</option>
+                        <option value="PTZ Off">PTZ Off</option>
+                        <option value="2 CCTV Offline">2 CCTV Offline</option>
+                        <option value="NVR,PTZ,BLT Offline">NVR,PTZ,BLT Offline</option>
+                        <option value="Site Down">Site Down</option>
+                    </select>
+                </div>
+
+                <div class="col-span-2 flex items-center justify-end space-x-2 pt-4 border-t border-slate-100 mt-2">
+                    <button type="button" onclick="closeAddSiteModal()" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Batal</button>
+                    <button type="submit" class="px-4 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC MULTI-YEAR (2026-2027) -->
+    <script>
+        const monthNames = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni", 
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+
+        // MENGHASILKAN OPTION BULAN UNTUK TAHUN 2026 & 2027
+        function generateMonthOptions() {
+            const select = document.getElementById('monthFilter');
+            let optionsHTML = '';
+
+            const years = [2026, 2027];
+            years.forEach(year => {
+                monthNames.forEach((month, idx) => {
+                    const key = `${month.toLowerCase()}-${year}`;
+                    const label = `${month} ${year}`;
+                    const selected = (key === 'november-2026') ? 'selected' : '';
+                    optionsHTML += `<option value="${key}" ${selected}>${label}</option>`;
+                });
+            });
+
+            select.innerHTML = optionsHTML;
+        }
+
+        // FUNGSI ESTIMASI WEEKS DENGAN FORMULA ISO WEEK NUMBERS
+        function getDefaultWeeksForMonth(monthKey) {
+            const parts = monthKey.split('-');
+            const mIdx = monthNames.findIndex(m => m.toLowerCase() === parts[0]);
+            const yr = parseInt(parts[1]);
+
+            // Pemetaan rentang minggu standar per bulan (W1 - W52)
+            const approxStartWeek = Math.floor(mIdx * 4.33) + 1;
+            return [approxStartWeek, approxStartWeek + 1, approxStartWeek + 2, approxStartWeek + 3];
+        }
+
+        const defaultSites = [
+            { id: 1, siteId: 'PAP0029', siteName: 'TOTOBERI', opsel: 'TELKOMSEL', konsorsium: 'LA-HW-SEI', provinsi: 'PAPUA TENGAH', kab: 'NABIRE', kecamatan: 'WAPOGA', kebersihan: 'Sudah di bersihkan', cctv: 'Online' },
+            { id: 2, siteId: 'PAP0030', siteName: 'SAMANUI', opsel: 'TELKOMSEL', konsorsium: 'LA-HW-SEI', provinsi: 'PAPUA TENGAH', kab: 'NABIRE', kecamatan: 'WAPOGA', kebersihan: 'Sudah di bersihkan', cctv: 'Online' },
+            { id: 3, siteId: 'PAP0031', siteName: 'KAMARISANOI', opsel: 'TELKOMSEL', konsorsium: 'LA-HW-SEI', provinsi: 'PAPUA TENGAH', kab: 'NABIRE', kecamatan: 'WAPOGA', kebersihan: 'Sudah di bersihkan', cctv: 'Online' },
+            { id: 4, siteId: 'PAP0033', siteName: 'KEUW', opsel: 'TELKOMSEL', konsorsium: 'LA-HW-SEI', provinsi: 'PAPUA TENGAH', kab: 'NABIRE', kecamatan: 'WAPOGA', kebersihan: 'Sudah di bersihkan', cctv: 'Online' },
+            { id: 5, siteId: 'PAP0063', siteName: 'KOROMBOBI', opsel: 'TELKOMSEL', konsorsium: 'LA-HW-SEI', provinsi: 'PAPUA', kab: 'KEPULAUAN YAPEN', kecamatan: 'YAPEN TIMUR', kebersihan: 'Sudah di bersihkan', cctv: 'Online' }
+        ];
+
+        let currentMonthKey = 'november-2026';
+
+        function getMonthStorageKey(monthKey, type) {
+            return `sla_${monthKey}_${type}`;
+        }
+
+        function loadMonthState(monthKey) {
+            const defaultWeeks = getDefaultWeeksForMonth(monthKey);
+            
+            // Default preset khusus November 2026 sesuai referensi
+            let defaultKebersihan = [
+                { category: 'Sudah Dibersihkan', color: 'bg-emerald-500', history: {} },
+                { category: 'Belum Dibersihkan', color: 'bg-amber-500', history: {} },
+                { category: 'Tidak Termonitor', color: 'bg-slate-500', history: {} }
+            ];
+
+            let defaultCctv = [
+                { category: 'CCTV Online', color: 'bg-emerald-500', history: {} },
+                { category: 'BLT OFF', color: 'bg-amber-500', history: {} },
+                { category: 'PTZ OFF', color: 'bg-amber-500', history: {} },
+                { category: 'NVR, BLT, PTZ Offline', color: 'bg-rose-500', history: {} },
+                { category: '2 CCTV Offline', color: 'bg-rose-500', history: {} },
+                { category: 'Site Down', color: 'bg-rose-600', history: {} }
+            ];
+
+            if (monthKey === 'november-2026') {
+                const wNov = [39, 40, 41, 42, 43, 44];
+                defaultKebersihan[0].history = { 39: 73, 40: 74, 41: 76, 42: 77, 43: 80, 44: 83 };
+                defaultKebersihan[1].history = { 39: 111, 40: 107, 41: 105, 42: 104, 43: 101, 44: 99 };
+                defaultKebersihan[2].history = { 39: 5, 40: 5, 41: 5, 42: 5, 43: 5, 44: 4 };
+
+                defaultCctv[0].history = { 39: 73, 40: 74, 41: 73, 42: 75, 43: 79, 44: 83 };
+                defaultCctv[1].history = { 39: 9, 40: 7, 41: 8, 42: 8, 43: 5, 44: 6 };
+                defaultCctv[2].history = { 39: 7, 40: 7, 41: 7, 42: 6, 43: 5, 44: 5 };
+                defaultCctv[3].history = { 39: 37, 40: 37, 41: 37, 42: 36, 43: 35, 44: 32 };
+                defaultCctv[4].history = { 39: 9, 40: 10, 41: 10, 42: 10, 43: 12, 44: 10 };
+                defaultCctv[5].history = { 39: 51, 40: 51, 41: 51, 42: 51, 43: 50, 44: 50 };
+            }
+
+            const weeks = loadData(getMonthStorageKey(monthKey, 'weeks'), monthKey === 'november-2026' ? [39, 40, 41, 42, 43, 44] : defaultWeeks);
+            const kebersihan = loadData(getMonthStorageKey(monthKey, 'kebersihan'), defaultKebersihan);
+            const cctv = loadData(getMonthStorageKey(monthKey, 'cctv'), defaultCctv);
+            const sites = loadData(getMonthStorageKey(monthKey, 'sites'), defaultSites);
+
+            return {
+                weeks: weeks,
+                startWeek: weeks[0],
+                endWeek: weeks[weeks.length - 1],
+                kebersihanMatrix: kebersihan,
+                cctvMatrix: cctv,
+                sites: sites
+            };
+        }
+
+        function saveData(key, val) {
+            localStorage.setItem(key, JSON.stringify(val));
+        }
+
+        function loadData(key, defaultVal) {
+            const saved = localStorage.getItem(key);
+            if (saved) {
+                try { return JSON.parse(saved); } catch(e) { return defaultVal; }
+            }
+            return defaultVal;
+        }
+
+        let monthState = loadMonthState(currentMonthKey);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            generateMonthOptions();
+            lucide.createIcons();
+            populateWeekDropdowns();
+            renderDashboard();
+            setupDragAndDrop();
+        });
+
+        function handleMonthChange(val) {
+            currentMonthKey = val;
+            monthState = loadMonthState(currentMonthKey);
+            
+            const monthText = document.getElementById('monthFilter').options[document.getElementById('monthFilter').selectedIndex].text;
+            document.getElementById('activeMonthLabel').innerText = monthText;
+
+            populateWeekDropdowns();
+            renderDashboard();
+        }
+
+        function populateWeekDropdowns() {
+            const startSelect = document.getElementById('startWeekSelect');
+            const endSelect = document.getElementById('endWeekSelect');
+
+            startSelect.innerHTML = monthState.weeks.map(w => `<option value="${w}" ${w === monthState.startWeek ? 'selected' : ''}>W${w}</option>`).join('');
+            endSelect.innerHTML = monthState.weeks.map(w => `<option value="${w}" ${w === monthState.endWeek ? 'selected' : ''}>W${w}</option>`).join('');
+        }
+
+        function renderDashboard() {
+            renderWeeklySummaries();
+            const filteredData = filterData(monthState.sites);
+            renderTable(filteredData);
+        }
+
+        function renderWeeklySummaries() {
+            const startW = parseInt(monthState.startWeek);
+            const endW = parseInt(monthState.endWeek);
+
+            const weekRange = [];
+            for (let i = startW; i <= endW; i++) {
+                if (monthState.weeks.includes(i)) weekRange.push(i);
+            }
+
+            renderSingleWeeklyTable('kebersihanHeaderTr', 'kebersihanBody', 'kebersihanFooterTr', monthState.kebersihanMatrix, weekRange);
+            renderSingleWeeklyTable('cctvHeaderTr', 'cctvBody', 'cctvFooterTr', monthState.cctvMatrix, weekRange);
+        }
+
+        function renderSingleWeeklyTable(headerId, bodyId, footerId, dataset, weekRange) {
+            const headerTr = document.getElementById(headerId);
+            const body = document.getElementById(bodyId);
+            const footerTr = document.getElementById(footerId);
+            const activeWeek = weekRange[weekRange.length - 1];
+            const prevWeek = weekRange.length > 1 ? weekRange[weekRange.length - 2] : activeWeek;
+
+            let headerHTML = `<th class="py-3 px-4 w-48">CATEGORY</th>`;
+            weekRange.forEach(w => {
+                const isCurrent = (w === activeWeek);
+                headerHTML += `<th class="py-3 px-3 text-center ${isCurrent ? 'bg-blue-100/60 text-blue-900 font-extrabold' : ''}">W${w}</th>`;
+            });
+            headerHTML += `<th class="py-3 px-4 text-center w-24">STATUS</th>`;
+            headerTr.innerHTML = headerHTML;
+
+            const totals = {};
+            weekRange.forEach(w => totals[w] = 0);
+
+            let bodyHTML = '';
+            dataset.forEach(item => {
+                bodyHTML += `<tr class="hover:bg-slate-50 transition">`;
+                bodyHTML += `
+                    <td class="py-2.5 px-4 font-semibold text-slate-700 flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full ${item.color} shrink-0"></span>
+                        <span>${item.category}</span>
+                    </td>
+                `;
+
+                weekRange.forEach(w => {
+                    const val = item.history[w] !== undefined ? item.history[w] : 0;
+                    totals[w] += val;
+                    const isCurrent = (w === activeWeek);
+                    bodyHTML += `<td class="py-2.5 px-3 text-center ${isCurrent ? 'bg-blue-50/70 font-extrabold text-slate-900' : 'text-slate-600'}">${val}</td>`;
+                });
+
+                const currentVal = item.history[activeWeek] || 0;
+                const prevVal = item.history[prevWeek] || 0;
+                const diff = currentVal - prevVal;
+
+                let statusBadge = `<span class="text-slate-400 font-bold">0</span>`;
+                if (diff > 0) {
+                    statusBadge = `<span class="text-emerald-600 font-extrabold flex items-center justify-center gap-0.5">↑ +${diff}</span>`;
+                } else if (diff < 0) {
+                    statusBadge = `<span class="text-rose-500 font-extrabold flex items-center justify-center gap-0.5">↓ ${diff}</span>`;
+                }
+
+                bodyHTML += `<td class="py-2.5 px-4 text-center">${statusBadge}</td>`;
+                bodyHTML += `</tr>`;
+            });
+            body.innerHTML = bodyHTML;
+
+            let footerHTML = `<td class="py-3 px-4 font-extrabold text-blue-950">Grand Total</td>`;
+            weekRange.forEach(w => {
+                const isCurrent = (w === activeWeek);
+                footerHTML += `<td class="py-3 px-3 text-center ${isCurrent ? 'bg-blue-100/80 font-black text-blue-950 text-sm' : ''}">${totals[w]}</td>`;
+            });
+            footerHTML += `<td class="py-3 px-4"></td>`;
+            footerTr.innerHTML = footerHTML;
+        }
+
+        // MODAL UPDATE WEEKLY
+        function openWeeklyModal() {
+            const monthText = document.getElementById('monthFilter').options[document.getElementById('monthFilter').selectedIndex].text;
+            document.getElementById('modalMonthTitle').innerText = monthText;
+
+            const modalSelect = document.getElementById('modalWeekSelect');
+            modalSelect.innerHTML = monthState.weeks.map(w => `<option value="${w}">Update W${w}</option>`).join('');
+            
+            const latestW = Math.max(...monthState.weeks);
+            modalSelect.value = latestW;
+            loadSelectedWeekToModal(latestW);
+
+            document.getElementById('weeklyModal').classList.remove('hidden');
+        }
+
+        function closeWeeklyModal() {
+            document.getElementById('weeklyModal').classList.add('hidden');
+        }
+
+        function loadSelectedWeekToModal(w) {
+            const weekNum = parseInt(w);
+
+            document.getElementById('w_clean').value = monthState.kebersihanMatrix[0].history[weekNum] || 0;
+            document.getElementById('w_dirty').value = monthState.kebersihanMatrix[1].history[weekNum] || 0;
+            document.getElementById('w_unmonitored').value = monthState.kebersihanMatrix[2].history[weekNum] || 0;
+
+            document.getElementById('w_cctvOnline').value = monthState.cctvMatrix[0].history[weekNum] || 0;
+            document.getElementById('w_bltOff').value = monthState.cctvMatrix[1].history[weekNum] || 0;
+            document.getElementById('w_ptzOff').value = monthState.cctvMatrix[2].history[weekNum] || 0;
+            document.getElementById('w_allOff').value = monthState.cctvMatrix[3].history[weekNum] || 0;
+            document.getElementById('w_cctv2Off').value = monthState.cctvMatrix[4].history[weekNum] || 0;
+            document.getElementById('w_siteDown').value = monthState.cctvMatrix[5].history[weekNum] || 0;
+        }
+
+        function createNewWeekOption() {
+            const nextW = Math.max(...monthState.weeks) + 1;
+            if (!monthState.weeks.includes(nextW)) {
+                monthState.weeks.push(nextW);
+                saveData(getMonthStorageKey(currentMonthKey, 'weeks'), monthState.weeks);
+                populateWeekDropdowns();
+
+                const modalSelect = document.getElementById('modalWeekSelect');
+                modalSelect.innerHTML = monthState.weeks.map(w => `<option value="${w}">Update W${w}</option>`).join('');
+                modalSelect.value = nextW;
+
+                autoFillFromTable();
+                alert(`Minggu Baru W${nextW} berhasil ditambahkan!`);
+            }
+        }
+
+        function autoFillFromTable() {
+            let cleanCount = 0, dirtyCount = 0, unmonitoredCount = 0;
+            let cctvOnline = 0, bltOff = 0, ptzOff = 0, allOff = 0, cctv2Off = 0, siteDown = 0;
+
+            monthState.sites.forEach(s => {
+                const k = (s.kebersihan || '').toLowerCase();
+                if (k.includes('sudah') || k.includes('bersih')) cleanCount++;
+                else if (k.includes('belum') || k.includes('kotor')) dirtyCount++;
+                else unmonitoredCount++;
+
+                const c = (s.cctv || '').toLowerCase();
+                if (c.includes('site down') || c.includes('down')) siteDown++;
+                else if (c.includes('nvr') || (c.includes('blt') && c.includes('ptz') && c.includes('off'))) allOff++;
+                else if (c.includes('2 cctv') || c.includes('2cctv')) cctv2Off++;
+                else if (c.includes('blt')) bltOff++;
+                else if (c.includes('ptz')) ptzOff++;
+                else cctvOnline++;
+            });
+
+            document.getElementById('w_clean').value = cleanCount;
+            document.getElementById('w_dirty').value = dirtyCount;
+            document.getElementById('w_unmonitored').value = unmonitoredCount;
+
+            document.getElementById('w_cctvOnline').value = cctvOnline;
+            document.getElementById('w_bltOff').value = bltOff;
+            document.getElementById('w_ptzOff').value = ptzOff;
+            document.getElementById('w_allOff').value = allOff;
+            document.getElementById('w_cctv2Off').value = cctv2Off;
+            document.getElementById('w_siteDown').value = siteDown;
+        }
+
+        function handleWeeklyFormSubmit(e) {
+            e.preventDefault();
+            const selectedW = parseInt(document.getElementById('modalWeekSelect').value);
+
+            monthState.kebersihanMatrix[0].history[selectedW] = parseInt(document.getElementById('w_clean').value) || 0;
+            monthState.kebersihanMatrix[1].history[selectedW] = parseInt(document.getElementById('w_dirty').value) || 0;
+            monthState.kebersihanMatrix[2].history[selectedW] = parseInt(document.getElementById('w_unmonitored').value) || 0;
+
+            monthState.cctvMatrix[0].history[selectedW] = parseInt(document.getElementById('w_cctvOnline').value) || 0;
+            monthState.cctvMatrix[1].history[selectedW] = parseInt(document.getElementById('w_bltOff').value) || 0;
+            monthState.cctvMatrix[2].history[selectedW] = parseInt(document.getElementById('w_ptzOff').value) || 0;
+            monthState.cctvMatrix[3].history[selectedW] = parseInt(document.getElementById('w_allOff').value) || 0;
+            monthState.cctvMatrix[4].history[selectedW] = parseInt(document.getElementById('w_cctv2Off').value) || 0;
+            monthState.cctvMatrix[5].history[selectedW] = parseInt(document.getElementById('w_siteDown').value) || 0;
+
+            monthState.endWeek = selectedW;
+
+            saveData(getMonthStorageKey(currentMonthKey, 'kebersihan'), monthState.kebersihanMatrix);
+            saveData(getMonthStorageKey(currentMonthKey, 'cctv'), monthState.cctvMatrix);
+
+            populateWeekDropdowns();
+            renderDashboard();
+            closeWeeklyModal();
+            alert(`Data Matrix untuk W${selectedW} berhasil disimpan!`);
+        }
+
+        function handleWeekRangeChange() {
+            const startVal = parseInt(document.getElementById('startWeekSelect').value);
+            const endVal = parseInt(document.getElementById('endWeekSelect').value);
+
+            if (startVal > endVal) {
+                alert('Minggu awal tidak boleh lebih besar dari minggu akhir.');
+                document.getElementById('startWeekSelect').value = monthState.startWeek;
+                document.getElementById('endWeekSelect').value = monthState.endWeek;
+                return;
+            }
+
+            monthState.startWeek = startVal;
+            monthState.endWeek = endVal;
+            renderWeeklySummaries();
+        }
+
+        function filterData(data) {
+            const searchVal = document.getElementById('searchInput').value.toLowerCase().trim();
+            const kebersihanVal = document.getElementById('filterKebersihan').value;
+            const cctvVal = document.getElementById('filterCctv').value;
+
+            return data.filter(site => {
+                const matchesSearch = !searchVal || 
+                    site.siteId.toLowerCase().includes(searchVal) ||
+                    site.siteName.toLowerCase().includes(searchVal) ||
+                    site.opsel.toLowerCase().includes(searchVal) ||
+                    site.provinsi.toLowerCase().includes(searchVal) ||
+                    site.kab.toLowerCase().includes(searchVal) ||
+                    site.kecamatan.toLowerCase().includes(searchVal);
+
+                const matchesKebersihan = (kebersihanVal === 'ALL') || (site.kebersihan === kebersihanVal);
+                const matchesCctv = (cctvVal === 'ALL') || (site.cctv === cctvVal);
+
+                return matchesSearch && matchesKebersihan && matchesCctv;
+            });
+        }
+
+        function applyFilters() { renderDashboard(); }
+
+        function resetAllData() {
+            if (confirm('Apakah Anda yakin ingin mereset data bulan ini ke format awal?')) {
+                localStorage.removeItem(getMonthStorageKey(currentMonthKey, 'weeks'));
+                localStorage.removeItem(getMonthStorageKey(currentMonthKey, 'kebersihan'));
+                localStorage.removeItem(getMonthStorageKey(currentMonthKey, 'cctv'));
+                localStorage.removeItem(getMonthStorageKey(currentMonthKey, 'sites'));
+                
+                monthState = loadMonthState(currentMonthKey);
+                populateWeekDropdowns();
+                renderDashboard();
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            document.getElementById('showingCount').innerText = data.length;
+            document.getElementById('totalCount').innerText = monthState.sites.length;
+
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="py-12 text-center text-slate-400">
+                            <i data-lucide="folder-search" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                            Tidak ada data site pada periode ini.
+                        </td>
+                    </tr>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            tbody.innerHTML = data.map((site, index) => {
+                let kebersihanBadge = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                if ((site.kebersihan || '').toLowerCase().includes('belum')) kebersihanBadge = 'bg-rose-100 text-rose-800 border-rose-200';
+                if ((site.kebersihan || '').toLowerCase().includes('tidak')) kebersihanBadge = 'bg-slate-100 text-slate-700 border-slate-300';
+
+                let cctvBadge = 'bg-blue-100 text-blue-800 border-blue-200';
+                const cLower = (site.cctv || '').toLowerCase();
+                if (cLower.includes('down') || cLower.includes('nvr')) {
+                    cctvBadge = 'bg-rose-100 text-rose-800 border-rose-200';
+                } else if (cLower.includes('offline') || cLower.includes('off')) {
+                    cctvBadge = 'bg-amber-100 text-amber-800 border-amber-200';
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100 font-medium">
+                        <td class="py-3 px-4 text-center font-bold text-slate-400">${index + 1}</td>
+                        <td class="py-3 px-4 font-bold text-blue-600">${site.siteId}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-800">${site.siteName}</td>
+                        <td class="py-3 px-4 text-slate-600">${site.opsel}</td>
+                        <td class="py-3 px-4 text-slate-500">${site.konsorsium}</td>
+                        <td class="py-3 px-4 text-slate-600">${site.provinsi}</td>
+                        <td class="py-3 px-4 text-slate-600">${site.kab}</td>
+                        <td class="py-3 px-4 font-semibold text-slate-800">${site.kecamatan}</td>
+                        
+                        <td class="py-3 px-4 text-center">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${kebersihanBadge}">
+                                ${site.kebersihan}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${cctvBadge}">
+                                ${site.cctv}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <div class="flex items-center justify-center space-x-1">
+                                <button onclick="editSite(${site.id})" class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50 transition" title="Edit Site">
+                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="deleteSite(${site.id})" class="text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition" title="Hapus Site">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function editSite(id) {
+            const site = monthState.sites.find(s => s.id === id);
+            if (!site) return;
+
+            document.getElementById('formEditId').value = site.id;
+            document.getElementById('formSiteId').value = site.siteId;
+            document.getElementById('formSiteName').value = site.siteName;
+            document.getElementById('formOpsel').value = site.opsel;
+            document.getElementById('formKonsorsium').value = site.konsorsium;
+            document.getElementById('formProvinsi').value = site.provinsi;
+            document.getElementById('formKab').value = site.kab;
+            document.getElementById('formKecamatan').value = site.kecamatan;
+            document.getElementById('formKebersihan').value = site.kebersihan;
+            document.getElementById('formCctv').value = site.cctv;
+
+            document.getElementById('modalFormTitle').innerHTML = `<i data-lucide="pencil" class="w-5 h-5 text-blue-600"></i> Edit Data Site`;
+            lucide.createIcons();
+            document.getElementById('addSiteModal').classList.remove('hidden');
+        }
+
+        function deleteSite(id) {
+            if (confirm('Apakah Anda yakin ingin menghapus site ini?')) {
+                monthState.sites = monthState.sites.filter(s => s.id !== id);
+                saveData(getMonthStorageKey(currentMonthKey, 'sites'), monthState.sites);
+                renderDashboard();
+            }
+        }
+
+        function downloadExcelTemplate() {
+            const templateHeader = [[
+                'NO', 'SITE ID', 'SITE NAME', 'OPSEL', 'KONSORSIUM', 'PROVINSI', 'KAB/KOTA', 'KECAMATAN', 'KEBERSIHAN', 'STATUS CCTV'
+            ]];
+            const sampleData = [
+                [1, 'PAP0029', 'TOTOBERI', 'TELKOMSEL', 'LA-HW-SEI', 'PAPUA TENGAH', 'NABIRE', 'WAPOGA', 'Sudah di bersihkan', 'Online'],
+                [2, 'PAP0030', 'SAMANUI', 'TELKOMSEL', 'LA-HW-SEI', 'PAPUA TENGAH', 'NABIRE', 'WAPOGA', 'Belum dibersihkan', '2 CCTV Offline']
+            ];
+
+            const ws = XLSX.utils.aoa_to_sheet([...templateHeader, ...sampleData]);
+            ws['!cols'] = [
+                { wch: 6 }, { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 15 },
+                { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 22 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Template_Monitoring");
+            XLSX.writeFile(wb, `Template_Monitoring_Site_SLA.xlsx`);
+        }
+
+        function exportToExcel() {
+            const filtered = filterData(monthState.sites);
+            
+            const exportData = filtered.map((site, idx) => ({
+                'NO': idx + 1,
+                'SITE ID': site.siteId,
+                'SITE NAME': site.siteName,
+                'OPSEL': site.opsel,
+                'KONSORSIUM': site.konsorsium,
+                'PROVINSI': site.provinsi,
+                'KAB/KOTA': site.kab,
+                'KECAMATAN': site.kecamatan,
+                'KEBERSIHAN': site.kebersihan,
+                'STATUS CCTV': site.cctv
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            ws['!cols'] = [
+                { wch: 6 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 16 },
+                { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 22 }
+            ];
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data_Site_SLA");
+
+            const currentMonthName = document.getElementById('monthFilter').options[document.getElementById('monthFilter').selectedIndex].text;
+            XLSX.writeFile(wb, `Export_Site_SLA_${currentMonthName.replace(/\s+/g, '_')}.xlsx`);
+        }
+
+        function openUploadModal() { document.getElementById('uploadModal').classList.remove('hidden'); }
+        function closeUploadModal() { document.getElementById('uploadModal').classList.add('hidden'); removeSelectedFile(); }
+
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-blue-500', 'bg-blue-50');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect({ target: fileInput });
+                }
+            });
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            monthState.selectedFileRaw = file;
+            document.getElementById('fileName').innerText = file.name;
+            document.getElementById('selectedFileInfo').classList.remove('hidden');
+            document.getElementById('btnProcessUpload').disabled = false;
+        }
+
+        function removeSelectedFile() {
+            monthState.selectedFileRaw = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('selectedFileInfo').classList.add('hidden');
+            document.getElementById('btnProcessUpload').disabled = true;
+        }
+
+        function processUpload() {
+            if (!monthState.selectedFileRaw) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+                    if (jsonRows.length === 0) {
+                        alert('File kosong atau format tidak terbaca.');
+                        return;
+                    }
+
+                    let updatedCount = 0;
+                    let addedCount = 0;
+
+                    jsonRows.forEach((row, idx) => {
+                        const getKey = (possibleKeys) => {
+                            for (let k of Object.keys(row)) {
+                                if (possibleKeys.includes(k.trim().toUpperCase())) return row[k];
+                            }
+                            return '';
+                        };
+
+                        const inputSiteId = String(getKey(['SITE ID', 'SITEID', 'ID'])).trim().toUpperCase();
+                        if (!inputSiteId) return;
+
+                        const siteData = {
+                            siteId: inputSiteId,
+                            siteName: String(getKey(['SITE NAME', 'SITENAME', 'NAMA SITE', 'NAME'])).trim().toUpperCase() || 'SITE BARU',
+                            opsel: String(getKey(['OPSEL', 'OPERATOR'])).trim().toUpperCase() || 'TELKOMSEL',
+                            konsorsium: String(getKey(['KONSORSIUM'])).trim().toUpperCase() || 'LA-HW-SEI',
+                            provinsi: String(getKey(['PROVINSI'])).trim().toUpperCase() || 'PAPUA TENGAH',
+                            kab: String(getKey(['KAB/KOTA', 'KABUPATEN', 'KOTA', 'KAB'])).trim().toUpperCase() || 'NABIRE',
+                            kecamatan: String(getKey(['KECAMATAN', 'KEC'])).trim() || 'WAPOGA',
+                            kebersihan: String(getKey(['KEBERSIHAN'])).trim() || 'Sudah di bersihkan',
+                            cctv: String(getKey(['STATUS CCTV', 'STATUSCCTV', 'CCTV'])).trim() || 'Online'
+                        };
+
+                        const existingIndex = monthState.sites.findIndex(s => s.siteId.toUpperCase() === inputSiteId);
+
+                        if (existingIndex !== -1) {
+                            monthState.sites[existingIndex] = { ...monthState.sites[existingIndex], ...siteData };
+                            updatedCount++;
+                        } else {
+                            monthState.sites.push({ id: Date.now() + idx, ...siteData });
+                            addedCount++;
+                        }
+                    });
+
+                    saveData(getMonthStorageKey(currentMonthKey, 'sites'), monthState.sites);
+                    renderDashboard();
+                    closeUploadModal();
+                    alert(`Proses Upload Berhasil!\n\n- ${updatedCount} site diperbarui\n- ${addedCount} site baru ditambahkan`);
+
+                } catch (error) {
+                    console.error(error);
+                    alert('Gagal memproses file. Pastikan format file Excel/CSV benar.');
+                }
+            };
+
+            reader.readAsArrayBuffer(monthState.selectedFileRaw);
+        }
+
+        function openAddSiteModal() {
+            document.getElementById('formEditId').value = '';
+            document.getElementById('addSiteForm').reset();
+            document.getElementById('modalFormTitle').innerHTML = `<i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i> Tambah Data Site Baru`;
+            lucide.createIcons();
+            document.getElementById('addSiteModal').classList.remove('hidden');
+        }
+
+        function closeAddSiteModal() {
+            document.getElementById('addSiteModal').classList.add('hidden');
+            document.getElementById('addSiteForm').reset();
+        }
+
+        function handleAddSiteSubmit(e) {
+            e.preventDefault();
+            
+            const editId = document.getElementById('formEditId').value;
+            const inputSiteId = document.getElementById('formSiteId').value.trim().toUpperCase();
+
+            const siteData = {
+                siteId: inputSiteId,
+                siteName: document.getElementById('formSiteName').value.trim().toUpperCase(),
+                opsel: document.getElementById('formOpsel').value,
+                konsorsium: document.getElementById('formKonsorsium').value.trim().toUpperCase(),
+                provinsi: document.getElementById('formProvinsi').value.trim().toUpperCase(),
+                kab: document.getElementById('formKab').value.trim().toUpperCase(),
+                kecamatan: document.getElementById('formKecamatan').value.trim().toUpperCase(),
+                kebersihan: document.getElementById('formKebersihan').value,
+                cctv: document.getElementById('formCctv').value
+            };
+
+            if (editId) {
+                const idx = monthState.sites.findIndex(s => s.id === parseInt(editId));
+                if (idx !== -1) {
+                    monthState.sites[idx] = { ...monthState.sites[idx], ...siteData };
+                }
+            } else {
+                const existingIndex = monthState.sites.findIndex(s => s.siteId.toUpperCase() === inputSiteId);
+                if (existingIndex !== -1) {
+                    monthState.sites[existingIndex] = { ...monthState.sites[existingIndex], ...siteData };
+                } else {
+                    monthState.sites.unshift({ id: Date.now(), ...siteData });
+                }
+            }
+
+            saveData(getMonthStorageKey(currentMonthKey, 'sites'), monthState.sites);
+            renderDashboard();
+            closeAddSiteModal();
+        }
+    </script>
+</body>
+</html>
